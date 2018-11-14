@@ -1,0 +1,1 @@
+/usr/bin/c++.exe -g  -Wl,--enable-auto-import CMakeFiles/123.dir/main.cpp.o  -o 123.exe -Wl,--out-implib,lib123.dll.a -Wl,--major-image-version,0,--minor-image-version,0 
