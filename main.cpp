@@ -8,16 +8,22 @@
 
 using namespace std;
 
+void wypiszMacierz(int n, int **macierzSasiedztwa);
+
+void wypiszParyBrakujacychKrawedzi(const vector<pair<int, int>> &puste);
+
+void wstawSymetrycznieDoMacierzy(int **macierz, int i, int j, int wartosc);
+
+
+int **stworzMacierzWypelnionaZerami(int n);
+
+int *permutacjaIndeksow(int n);
+
 int main() {
     int n; // wierzcholki <Vertex>
     int k; // krawedzie <Edges>
     char tryb;
     double czas; // zmienna do liczenia czasu
-
-    int edges[n];
-    for (int i = 0; i < n; i++) {
-        edges[i] = i;
-    }
 
     cout << "wybierz tryb działania programu:" << '\n';
     cout << "Tryb A - wybierz a" << endl;
@@ -39,31 +45,17 @@ int main() {
                 cout << "Wprowadź nową wartosć: " << endl;
                 cin >> k;
             }
-            cout << "Wypelniam macierz sąsiedztwa zerami... " << endl;
-            int macierzSasiedztwa[n][n];
-            for (int i = 0; i < n; i++) {
-                for (int j = 0; j < n; j++) {
-                    macierzSasiedztwa[i][j] = 0;
-                }
-            }
-
+            cout << "Rezerwuje pamięć i wypełniam macierz sąsiedztwa zerami... " << endl;
+            int **macierzSasiedztwa = stworzMacierzWypelnionaZerami(n);
             cout << "Tworze tablice permutacji krawędzi..." << endl;
-            int possibleEdges[n];
-            for (int i = 0; i < n; i++) {
-                possibleEdges[i] = i;
-            }
-            cout << endl;
-            shuffle(possibleEdges, possibleEdges + n, mt19937(random_device()()));
-            cout << "Losowa permutacja: " << endl;
-            for (int i = 0; i < n; i++) {
-                cout << possibleEdges[i] << " ";
-            }
+            int *possibleEdges = permutacjaIndeksow(n);
+
             cout << endl << "Wypelniam tablice wedlug losowej permutacji... 0..n-1" << endl;
             for (int i = 0; i < n - 1; i++) {
-                macierzSasiedztwa[possibleEdges[i]][possibleEdges[i + 1]] = 1; // wstawiamy liczbe pomiedzy dwoma wezlami grafu
-                macierzSasiedztwa[possibleEdges[i + 1]][possibleEdges[i]] = 1; // wstawiamy liczbe symetrycznie po drugiej stronie
+                wstawSymetrycznieDoMacierzy(macierzSasiedztwa, possibleEdges[i], possibleEdges[i + 1], 1);
             }
-            cout << "Zabraklo nam: " << k - (n - 1) << " krawedzi do wymaganych " << k << endl;
+            int iloscBrakujacychKrawedzi = k - (n - 1);
+            cout << "Zabraklo nam: " << iloscBrakujacychKrawedzi << " krawedzi do wymaganych " << k << endl;
             vector<pair<int, int>> puste;
             for (int i = 0; i < n; i++) {
                 for (int j = 0; j < i; j++) {
@@ -73,29 +65,15 @@ int main() {
                 }
             }
             cout << "Mozliwe miejsca na krawedz:" << puste.size() << endl;
-            for (int i = 0; i < puste.size(); i++) {
-                //cout << "[" << puste[i].first << "][" << puste[i].second << "]" << endl;
-            }
-            cout << "Macierz przed wypelnianiem losowo " << k - (n - 1) << " miejsc..";
-            for (int i = 0; i < n; i++) {
-                cout << "\n";
-                for (int j = 0; j < n; j++) {
-                    cout << macierzSasiedztwa[i][j] << " ";
-                }
-            }
+            wypiszParyBrakujacychKrawedzi(puste);
+            cout << "Macierz przed wypelnianiem losowo " << iloscBrakujacychKrawedzi << " miejsc..";
+            wypiszMacierz(n, macierzSasiedztwa);
             shuffle(puste.begin(), puste.end(), std::mt19937(std::random_device()()));
-            for (int i = 0; i < k - (n - 1); i++) {
-                //cout << "Wstawiam jedynkę w losowe miejsce... " << i << endl;
-                macierzSasiedztwa[puste[i].first][puste[i].second] = 1;
-                macierzSasiedztwa[puste[i].second][puste[i].first] = 1;
+            for (int i = 0; i < iloscBrakujacychKrawedzi; i++) {
+                wstawSymetrycznieDoMacierzy(macierzSasiedztwa, puste[i].first, puste[i].second, 1);
             }
             cout << endl << "Zawartosc macierzy sąsiedztwa: " << endl;
-            for (int i = 0; i < n; i++) {
-                cout << "\n";
-                for (int j = 0; j < n; j++) {
-                    cout << macierzSasiedztwa[i][j] << " ";
-                }
-            }
+            wypiszMacierz(n, macierzSasiedztwa);
             break;
         }
         case 'b': {
@@ -133,4 +111,49 @@ int main() {
      */
 
     return 0;
+}
+
+int *permutacjaIndeksow(int n) {
+    int *possibleEdges = new int[n];
+    for (int i = 0; i < n; i++) {
+        possibleEdges[i] = i;
+    }
+    shuffle(possibleEdges, possibleEdges + n, mt19937(random_device()()));
+    cout << "Losowa permutacja: " << endl;
+    for (int i = 0; i < n; i++) {
+        cout << possibleEdges[i] << " ";
+    }
+    return possibleEdges;
+}
+
+int **stworzMacierzWypelnionaZerami(int n) {
+    int **macierzSasiedztwa;
+    macierzSasiedztwa = new int *[n];
+    for (int i = 0; i < n; i++) {
+        macierzSasiedztwa[i] = new int[n];
+        for (int j = 0; j < n; j++) {
+            macierzSasiedztwa[i][j] = 0;
+        }
+    }
+    return macierzSasiedztwa;
+}
+
+void wypiszParyBrakujacychKrawedzi(const vector<pair<int, int>> &puste) {
+    for (int i = 0; i < puste.size(); i++) {
+        cout << "[" << puste[i].first << "][" << puste[i].second << "]" << endl;
+    }
+}
+
+void wypiszMacierz(int n, int **macierzSasiedztwa) {
+    for (int i = 0; i < n; i++) {
+        cout << "\n";
+        for (int j = 0; j < n; j++) {
+            cout << macierzSasiedztwa[i][j] << " ";
+        }
+    }
+}
+
+void wstawSymetrycznieDoMacierzy(int **macierz, int i, int j, int wartosc) {
+    macierz[i][j] = wartosc;
+    macierz[j][i] = wartosc;
 }
