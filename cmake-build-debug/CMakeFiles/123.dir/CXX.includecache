@@ -7,10 +7,20 @@
 #IncludeRegexTransform: 
 
 /cygdrive/c/Users/wesiv/CLionProjects/123/main.cpp
+random
+-
 iostream
 -
 cstdio
 -
 ctime
+-
+cmath
+-
+cstdlib
+-
+algorithm
+-
+climits
 -
 

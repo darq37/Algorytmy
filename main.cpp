@@ -47,44 +47,45 @@ void printPath(int parent[], int i) {
     cout << i << " ";
 }
 
-int printSolution(int dist[], int n, int skad[], int cel) {
+int printSolution(int dist[], int n, int skad[]) {
     int src = 0;
     cout << "\nTrasa\t\tWaga\tSciezka";
-    for (int i = 0; i < cel+1; i++) {
+    for (int i = 0; i < n; i++) {
         cout << "\n" << src << " -> " << i << "\t\t" << dist[i] << "\t\t\t" << src << " ";
         printPath(skad, i);
     }
 }
 
-void djikstra(int **graph, int zrodlo, int n, int cel) {
+void djikstra(int **graph, int zrodlo, int n) {
     int *dystans = new int[n]; // tablica dystansów od źrodłą (zrodlo) do danego wierzchołka
     bool *znalezione = new bool[n]; // tablica zawierajaca "true" dla danego indeksu wierzchołka dla którego znaleziono najkr. scieżkę
     int *parent = new int[n];
     for (int i = 0; i < n; i++) { // iteracja po wszystkich wierchołkach grafu
         dystans[i] = INT_MAX; // dla kazdego wierzchołka ustawiamy koszt drogi na INT_MAX
-        znalezione[i] = false;// dla każdego wierzchołka, ustawiamy, że nie znaleźliśmy do niego jeszcze najkrótszej ścieżki (false)
-
-
+        znalezione[i] = false; // dla każdego wierzchołka, ustawiamy, że nie znaleźliśmy do niego jeszcze najkrótszej ścieżki (false)
     }
     parent[zrodlo] = -1;
     dystans[zrodlo] = 0; // ustawiamy punkt startowy ustalając dla niego dystans = 0
     for (int j = 0; j < n - 1; j++) {
         int u = znajdzKrotszyDystans(dystans, znalezione, n);
-        znalezione[u] = true;
-        for (int v = 0; v < cel+1; v++) {
+        znalezione[u] = true; //oznaczamy wybrany wierzcholek jako aktualnie sprawdzany
+        for (int v = 0; v < n; v++) { // naspisujemy wartosc dystansu, gdy spelnimy wszystkie warunki
             if (!znalezione[v] && graph[u][v] && dystans[u] != INT_MAX && dystans[u] + graph[u][v] < dystans[v]) {
+                // warunki, t.j
+                // 1. Wierzcholek nie jest juz znaleziony,
+                // 2. istnieje krawędź pomiędzy wierzcholkiem a nastepnym w kolejce,
+                // 3. suma wag od źródła do aktualnego wierzcholka poprzez  u nie jest większa niz niz dotychczasowa wartosc  wagi wierzcholka v
                 dystans[v] = dystans[u] + graph[u][v];
                 parent[v] = u;
             }
         }
     }
-    printSolution(dystans, n, parent, cel);
+    printSolution(dystans, n, parent);
 }
 
 int main() {
     int n; // wierzcholki <Vertex>
     int k; // krawedzie <Edges>
-    int cel;
     char tryb;
     double czas; // zmienna do liczenia czasu
 
@@ -111,21 +112,40 @@ int main() {
             int **macierzSasiedztwa = wygenerujSpojnyGraf(n, k);
             cout << endl << "Zawartosc macierzy sąsiedztwa: " << endl;
             wypiszMacierz(n, macierzSasiedztwa);
-            cout << endl << "Podaj docelowy wierzcholek" << endl;
-            cin >> cel;
-            djikstra(macierzSasiedztwa, 0, n, cel);
+            clock_t start;
+            start = clock();
+            djikstra(macierzSasiedztwa, 0, n);
+            czas = (clock() - start) / (double) CLOCKS_PER_SEC;
+            cout << '\n' << "Czas wykoania algorytmu: " << czas << " s" << '\n';
             break;
         }
         case 'b': {
             cout << "Wybrano tryb B" << endl;
             cout << "Podaj liczbą wierzchołków: " << endl;
-            cin >> n;
             double zapelnienie;
             cout << "Podaj zapelnenie grafu: (0.5 - 1.0)" << endl;
             cin >> zapelnienie;
             k = static_cast<int>(zapelnienie * n);
             cout << "Zapełnienie grafu wynosi " << zapelnienie * 100 << "%." << endl;
             cout << "Graf ma teraz " << k << " krawędzi" << endl;
+            cout << "Podaj dolną wartość zakresu:" << endl;
+            int zakresMinimum;
+            cin >> zakresMinimum;
+            cout << "Podaj górną wartość zakresu:" << endl;
+            int zakresMaksimum;
+            cin >> zakresMaksimum;
+            cout << "Podaj liczbę wykonań algorytmu (liczbę losowych grafów/ilość wierzchołków na liczbę z zakresu)" << endl;
+            int liczbaWykonan;
+            cin >> liczbaWykonan;
+            for (int i = zakresMinimum; i <= zakresMaksimum || i>= zakresMinimum; ++i) {
+                for (int j = 0; j <liczbaWykonan+1 ; ++j) {
+                    int **macierzSasiedztwa = wygenerujSpojnyGraf(n, k);
+                    djikstra(macierzSasiedztwa, 0, n);
+                }
+
+            }
+
+
             break;
         }
         default: {
