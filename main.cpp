@@ -5,23 +5,79 @@
 #include <cmath>
 #include <cstdlib>
 #include <algorithm>
+#include <climits>
 
 using namespace std;
 
 void wypiszMacierz(int n, int **macierzSasiedztwa);
 
-void wypiszParyBrakujacychKrawedzi(const vector<pair<int, int>> &puste);
+void wypiszParyMiejscNaKrawedzie(const vector<pair<int, int>> &wektorPar);
 
 void wstawSymetrycznieDoMacierzy(int **macierz, int i, int j, int wartosc);
 
-
 int **stworzMacierzWypelnionaZerami(int n);
 
-int *permutacjaIndeksow(int n);
+int *wygenerujLosowaPermutacjeIndeksowDoN(int n);
 
-vector<pair<int, int>> wektorPustychMiejsc(int n, int *const *macierzSasiedztwa);
+vector<pair<int, int>> znajdzMiejscaNaKrawedzie(int n, int *const *macierzSasiedztwa);
 
 int **wygenerujSpojnyGraf(int n, int k);
+
+int losowaWartoscWZakresie(int min, int max);
+
+int znajdzKrotszyDystans(const int *dystans, const bool *znalezione, int n) {
+    int min = INT_MAX;
+    int min_index = -1;
+
+    for (int i = 0; i < n; i++) {
+        if (!znalezione[i] && dystans[i] <= min) {
+            min = dystans[i];
+            min_index = i;
+        }
+    }
+
+    return min_index;
+}
+
+void printPath(int parent[], int i) {
+    if (parent[i] == -1) {
+        return;
+    }
+    printPath(parent, parent[i]);
+    cout << i << " ";
+}
+
+int printSolution(int dist[], int n, int skad[]) {
+    int src = 0;
+    cout << "\nTrasa\t\tWaga\tSciezka";
+    for (int i = 0; i < n; i++) {
+        cout << "\n" << src << " -> " << i << "\t\t" << dist[i] << "\t\t\t" << src << " ";
+        printPath(skad, i);
+    }
+}
+
+void djikstra(int **graph, int zrodlo, int n) {
+    int *dystans = new int[n]; // tablica dystansów od źrodłą (zrodlo) do danego wierzchołka
+    bool *znalezione = new bool[n]; // tablica zawierajaca "true" dla danego indeksu wierzchołka dla którego znaleziono najkr. scieżkę
+    int *skad = new int[n];
+    for (int i = 0; i < n; i++) { // iteracja po wszystkich wierchołkach grafu
+        dystans[i] = INT_MAX; // dla kazdego wierzchołka ustawiamy koszt drogi na INT_MAX
+        znalezione[i] = false; // dla każdego wierzchołka, ustawiamy, że nie znaleźliśmy do niego jeszcze najkrótszej ścieżki (false)
+    }
+    skad[zrodlo] = -1;
+    dystans[zrodlo] = 0; // ustawiamy punkt startowy ustalając dla niego dystans = 0
+    for (int j = 0; j < n - 1; j++) {
+        int u = znajdzKrotszyDystans(dystans, znalezione, n);
+        znalezione[u] = true;
+        for (int v = 0; v < n; v++) {
+            if (!znalezione[v] && graph[u][v] && dystans[u] != INT_MAX && dystans[u] + graph[u][v] < dystans[v]) {
+                dystans[v] = dystans[u] + graph[u][v];
+                skad[v] = u;
+            }
+        }
+    }
+    printSolution(dystans, n, skad);
+}
 
 int main() {
     int n; // wierzcholki <Vertex>
@@ -52,6 +108,7 @@ int main() {
             int **macierzSasiedztwa = wygenerujSpojnyGraf(n, k);
             cout << endl << "Zawartosc macierzy sąsiedztwa: " << endl;
             wypiszMacierz(n, macierzSasiedztwa);
+            djikstra(macierzSasiedztwa, 0, n);
             break;
         }
         case 'b': {
@@ -71,62 +128,44 @@ int main() {
             break;
         }
     }
-
-    /*clock_t start;
-    start = clock();
-
-    cout << "Zawartosc tablicy: " << endl;
-    int tablica[k][n];
-    for (int i = 0; i < k; i++) {
-        cout << "\n";
-        for (int j = 0; j < n; j++) {
-            cout << 0 + (rand() % 2);
-        }
-    }
-    czas = (clock() - start) / (double) CLOCKS_PER_SEC;
-
-    cout << '\n' << "Czas wykoania: " << czas << '\n';
-     */
-
     return 0;
 }
 
 int **wygenerujSpojnyGraf(int n, int k) {
     cout << "Rezerwuje pamięć i wypełniam macierz sąsiedztwa zerami... " << endl;
     int **macierzSasiedztwa = stworzMacierzWypelnionaZerami(n);
-    cout << "Tworze tablice permutacji krawędzi..." << endl;
-    int *losowaPermutacjaIndeksoww = permutacjaIndeksow(n);
+    int *permutacjaIndeksow = wygenerujLosowaPermutacjeIndeksowDoN(n);
     cout << endl << "Wypelniam tablice wedlug losowej permutacji... 0..n-1" << endl;
     for (int i = 0; i < n - 1; i++) {
-                wstawSymetrycznieDoMacierzy(macierzSasiedztwa, losowaPermutacjaIndeksoww[i], losowaPermutacjaIndeksoww[i + 1], 1);
-            }
+        wstawSymetrycznieDoMacierzy(macierzSasiedztwa, permutacjaIndeksow[i], permutacjaIndeksow[i + 1], losowaWartoscWZakresie(1, 100));
+    }
     int iloscBrakujacychKrawedzi = k - (n - 1);
     cout << "Zabraklo nam: " << iloscBrakujacychKrawedzi << " krawedzi do wymaganych " << k << endl;
-    vector<pair<int, int>> puste = wektorPustychMiejsc(n, macierzSasiedztwa);
-    cout << "Mozliwe miejsca na krawedz:" << puste.size() << endl;
-    wypiszParyBrakujacychKrawedzi(puste);
+    vector<pair<int, int>> miejscaNaKrawedzie = znajdzMiejscaNaKrawedzie(n, macierzSasiedztwa);
     cout << "Macierz przed wypelnianiem losowo " << iloscBrakujacychKrawedzi << " miejsc..";
     wypiszMacierz(n, macierzSasiedztwa);
-    shuffle(puste.begin(), puste.end(), mt19937(random_device()()));
+    shuffle(miejscaNaKrawedzie.begin(), miejscaNaKrawedzie.end(), mt19937(random_device()()));
     for (int i = 0; i < iloscBrakujacychKrawedzi; i++) {
-                wstawSymetrycznieDoMacierzy(macierzSasiedztwa, puste[i].first, puste[i].second, 1);
-            }
+        wstawSymetrycznieDoMacierzy(macierzSasiedztwa, miejscaNaKrawedzie[i].first, miejscaNaKrawedzie[i].second, losowaWartoscWZakresie(1, 100));
+    }
     return macierzSasiedztwa;
 }
 
-vector<pair<int, int>> wektorPustychMiejsc(int n, int *const *macierzSasiedztwa) {
+vector<pair<int, int>> znajdzMiejscaNaKrawedzie(int n, int *const *macierzSasiedztwa) {
     vector<pair<int, int>> puste;
     for (int i = 0; i < n; i++) { // przejdz przez wiersze macierzy
-                for (int j = 0; j < i; j++) { // przejdz przez elementy wiersza az do jego indeksu ( dla wiersza 2 - sprawdzimy [2][0] oraz [2][1]
-                    if (macierzSasiedztwa[i][j] == 0) { // jezeli to jest puste pole
-                        puste.emplace_back(i, j); //dodaj parę będącą współrzędnymi tego pola do wektora
-                    }
-                }
+        for (int j = 0; j < i; j++) { // przejdz przez elementy wiersza az do jego indeksu ( dla wiersza 2 - sprawdzimy [2][0] oraz [2][1]
+            if (macierzSasiedztwa[i][j] == 0) { // jezeli to jest puste pole
+                puste.emplace_back(i, j); //dodaj parę będącą współrzędnymi tego pola do wektora
             }
+        }
+    }
+    wypiszParyMiejscNaKrawedzie(puste);
     return puste;
 }
 
-int *permutacjaIndeksow(int n) {
+int *wygenerujLosowaPermutacjeIndeksowDoN(int n) {
+    cout << "Tworze tablice permutacji krawędzi..." << endl;
     int *possibleEdges = new int[n];
     for (int i = 0; i < n; i++) {
         possibleEdges[i] = i;
@@ -151,9 +190,10 @@ int **stworzMacierzWypelnionaZerami(int n) {
     return macierzSasiedztwa;
 }
 
-void wypiszParyBrakujacychKrawedzi(const vector<pair<int, int>> &puste) {
-    for (int i = 0; i < puste.size(); i++) {
-        cout << "[" << puste[i].first << "][" << puste[i].second << "]" << endl;
+void wypiszParyMiejscNaKrawedzie(const vector<pair<int, int>> &wektorPar) {
+    cout << "Mozliwe miejsca na krawedz:" << wektorPar.size() << endl;
+    for (int i = 0; i < wektorPar.size(); i++) {
+        cout << "[" << wektorPar[i].first << "][" << wektorPar[i].second << "]" << endl;
     }
 }
 
@@ -161,12 +201,20 @@ void wypiszMacierz(int n, int **macierzSasiedztwa) {
     for (int i = 0; i < n; i++) {
         cout << "\n";
         for (int j = 0; j < n; j++) {
-            cout << macierzSasiedztwa[i][j] << " ";
+            cout << macierzSasiedztwa[i][j] << "\t";
         }
     }
 }
 
 void wstawSymetrycznieDoMacierzy(int **macierz, int i, int j, int wartosc) {
+
     macierz[i][j] = wartosc;
     macierz[j][i] = wartosc;
+}
+
+int losowaWartoscWZakresie(int min, int max) {
+    random_device rd; // obtain a random number from hardware
+    mt19937 rng(rd()); // seed the generator
+    uniform_int_distribution<> distr(min, max); // define the range
+    return distr(rng);
 }
