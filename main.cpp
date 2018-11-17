@@ -19,6 +19,10 @@ int **stworzMacierzWypelnionaZerami(int n);
 
 int *permutacjaIndeksow(int n);
 
+vector<pair<int, int>> wektorPustychMiejsc(int n, int *const *macierzSasiedztwa);
+
+int **wygenerujSpojnyGraf(int n, int k);
+
 int main() {
     int n; // wierzcholki <Vertex>
     int k; // krawedzie <Edges>
@@ -45,33 +49,7 @@ int main() {
                 cout << "Wprowadź nową wartosć: " << endl;
                 cin >> k;
             }
-            cout << "Rezerwuje pamięć i wypełniam macierz sąsiedztwa zerami... " << endl;
-            int **macierzSasiedztwa = stworzMacierzWypelnionaZerami(n);
-            cout << "Tworze tablice permutacji krawędzi..." << endl;
-            int *possibleEdges = permutacjaIndeksow(n);
-
-            cout << endl << "Wypelniam tablice wedlug losowej permutacji... 0..n-1" << endl;
-            for (int i = 0; i < n - 1; i++) {
-                wstawSymetrycznieDoMacierzy(macierzSasiedztwa, possibleEdges[i], possibleEdges[i + 1], 1);
-            }
-            int iloscBrakujacychKrawedzi = k - (n - 1);
-            cout << "Zabraklo nam: " << iloscBrakujacychKrawedzi << " krawedzi do wymaganych " << k << endl;
-            vector<pair<int, int>> puste;
-            for (int i = 0; i < n; i++) {
-                for (int j = 0; j < i; j++) {
-                    if (macierzSasiedztwa[i][j] == 0) {
-                        puste.emplace_back(i, j);
-                    }
-                }
-            }
-            cout << "Mozliwe miejsca na krawedz:" << puste.size() << endl;
-            wypiszParyBrakujacychKrawedzi(puste);
-            cout << "Macierz przed wypelnianiem losowo " << iloscBrakujacychKrawedzi << " miejsc..";
-            wypiszMacierz(n, macierzSasiedztwa);
-            shuffle(puste.begin(), puste.end(), std::mt19937(std::random_device()()));
-            for (int i = 0; i < iloscBrakujacychKrawedzi; i++) {
-                wstawSymetrycznieDoMacierzy(macierzSasiedztwa, puste[i].first, puste[i].second, 1);
-            }
+            int **macierzSasiedztwa = wygenerujSpojnyGraf(n, k);
             cout << endl << "Zawartosc macierzy sąsiedztwa: " << endl;
             wypiszMacierz(n, macierzSasiedztwa);
             break;
@@ -111,6 +89,41 @@ int main() {
      */
 
     return 0;
+}
+
+int **wygenerujSpojnyGraf(int n, int k) {
+    cout << "Rezerwuje pamięć i wypełniam macierz sąsiedztwa zerami... " << endl;
+    int **macierzSasiedztwa = stworzMacierzWypelnionaZerami(n);
+    cout << "Tworze tablice permutacji krawędzi..." << endl;
+    int *losowaPermutacjaIndeksoww = permutacjaIndeksow(n);
+    cout << endl << "Wypelniam tablice wedlug losowej permutacji... 0..n-1" << endl;
+    for (int i = 0; i < n - 1; i++) {
+                wstawSymetrycznieDoMacierzy(macierzSasiedztwa, losowaPermutacjaIndeksoww[i], losowaPermutacjaIndeksoww[i + 1], 1);
+            }
+    int iloscBrakujacychKrawedzi = k - (n - 1);
+    cout << "Zabraklo nam: " << iloscBrakujacychKrawedzi << " krawedzi do wymaganych " << k << endl;
+    vector<pair<int, int>> puste = wektorPustychMiejsc(n, macierzSasiedztwa);
+    cout << "Mozliwe miejsca na krawedz:" << puste.size() << endl;
+    wypiszParyBrakujacychKrawedzi(puste);
+    cout << "Macierz przed wypelnianiem losowo " << iloscBrakujacychKrawedzi << " miejsc..";
+    wypiszMacierz(n, macierzSasiedztwa);
+    shuffle(puste.begin(), puste.end(), mt19937(random_device()()));
+    for (int i = 0; i < iloscBrakujacychKrawedzi; i++) {
+                wstawSymetrycznieDoMacierzy(macierzSasiedztwa, puste[i].first, puste[i].second, 1);
+            }
+    return macierzSasiedztwa;
+}
+
+vector<pair<int, int>> wektorPustychMiejsc(int n, int *const *macierzSasiedztwa) {
+    vector<pair<int, int>> puste;
+    for (int i = 0; i < n; i++) { // przejdz przez wiersze macierzy
+                for (int j = 0; j < i; j++) { // przejdz przez elementy wiersza az do jego indeksu ( dla wiersza 2 - sprawdzimy [2][0] oraz [2][1]
+                    if (macierzSasiedztwa[i][j] == 0) { // jezeli to jest puste pole
+                        puste.emplace_back(i, j); //dodaj parę będącą współrzędnymi tego pola do wektora
+                    }
+                }
+            }
+    return puste;
 }
 
 int *permutacjaIndeksow(int n) {
