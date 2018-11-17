@@ -47,41 +47,44 @@ void printPath(int parent[], int i) {
     cout << i << " ";
 }
 
-int printSolution(int dist[], int n, int skad[]) {
+int printSolution(int dist[], int n, int skad[], int cel) {
     int src = 0;
     cout << "\nTrasa\t\tWaga\tSciezka";
-    for (int i = 0; i < n; i++) {
+    for (int i = 0; i < cel+1; i++) {
         cout << "\n" << src << " -> " << i << "\t\t" << dist[i] << "\t\t\t" << src << " ";
         printPath(skad, i);
     }
 }
 
-void djikstra(int **graph, int zrodlo, int n) {
+void djikstra(int **graph, int zrodlo, int n, int cel) {
     int *dystans = new int[n]; // tablica dystansów od źrodłą (zrodlo) do danego wierzchołka
     bool *znalezione = new bool[n]; // tablica zawierajaca "true" dla danego indeksu wierzchołka dla którego znaleziono najkr. scieżkę
-    int *skad = new int[n];
+    int *parent = new int[n];
     for (int i = 0; i < n; i++) { // iteracja po wszystkich wierchołkach grafu
         dystans[i] = INT_MAX; // dla kazdego wierzchołka ustawiamy koszt drogi na INT_MAX
-        znalezione[i] = false; // dla każdego wierzchołka, ustawiamy, że nie znaleźliśmy do niego jeszcze najkrótszej ścieżki (false)
+        znalezione[i] = false;// dla każdego wierzchołka, ustawiamy, że nie znaleźliśmy do niego jeszcze najkrótszej ścieżki (false)
+
+
     }
-    skad[zrodlo] = -1;
+    parent[zrodlo] = -1;
     dystans[zrodlo] = 0; // ustawiamy punkt startowy ustalając dla niego dystans = 0
     for (int j = 0; j < n - 1; j++) {
         int u = znajdzKrotszyDystans(dystans, znalezione, n);
         znalezione[u] = true;
-        for (int v = 0; v < n; v++) {
+        for (int v = 0; v < cel+1; v++) {
             if (!znalezione[v] && graph[u][v] && dystans[u] != INT_MAX && dystans[u] + graph[u][v] < dystans[v]) {
                 dystans[v] = dystans[u] + graph[u][v];
-                skad[v] = u;
+                parent[v] = u;
             }
         }
     }
-    printSolution(dystans, n, skad);
+    printSolution(dystans, n, parent, cel);
 }
 
 int main() {
     int n; // wierzcholki <Vertex>
     int k; // krawedzie <Edges>
+    int cel;
     char tryb;
     double czas; // zmienna do liczenia czasu
 
@@ -108,7 +111,9 @@ int main() {
             int **macierzSasiedztwa = wygenerujSpojnyGraf(n, k);
             cout << endl << "Zawartosc macierzy sąsiedztwa: " << endl;
             wypiszMacierz(n, macierzSasiedztwa);
-            djikstra(macierzSasiedztwa, 0, n);
+            cout << endl << "Podaj docelowy wierzcholek" << endl;
+            cin >> cel;
+            djikstra(macierzSasiedztwa, 0, n, cel);
             break;
         }
         case 'b': {
