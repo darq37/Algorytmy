@@ -1,35 +1,33 @@
 #include <random>
-
 #include <iostream>
 #include <cstdio>
 #include <ctime>
 #include <cmath>
 #include <cstdlib>
-#include <random>
 #include <algorithm>
 
 using namespace std;
 
 int main() {
-    int n = 7; // wierzcholki <Vertex>
+    int n; // wierzcholki <Vertex>
     int k; // krawedzie <Edges>
-    char tryb = 'a';
+    char tryb;
     double czas; // zmienna do liczenia czasu
 
     int edges[n];
-    for (int i = 0; i < n; ++i) {
+    for (int i = 0; i < n; i++) {
         edges[i] = i;
     }
 
     cout << "wybierz tryb działania programu:" << '\n';
     cout << "Tryb A - wybierz a" << endl;
     cout << "Tryb B - wybierz b" << endl;
-    //cin >> tryb;
+    cin >> tryb;
     switch (tryb) {
         case 'a': {
             cout << "Wybrano tryb A!" << endl;
             cout << "Podaj liczbą wierzchołków: " << endl;
-            //cin >> n;
+            cin >> n;
             int maksymalnaIloscKrawedzi = n * (n - 1) / 2;
             int minimalnaIloscKrawedzi = static_cast<int>(ceil(0.25 * n * (n - 1)));
             cout << "minimalna liczba krawędzi to: " << minimalnaIloscKrawedzi << endl;
@@ -54,23 +52,48 @@ int main() {
             for (int i = 0; i < n; i++) {
                 possibleEdges[i] = i;
             }
-            cout <<endl;
-            shuffle(possibleEdges, possibleEdges+n, mt19937(random_device()()));
+            cout << endl;
+            shuffle(possibleEdges, possibleEdges + n, mt19937(random_device()()));
             cout << "Losowa permutacja: " << endl;
             for (int i = 0; i < n; i++) {
-                cout << possibleEdges[i];
+                cout << possibleEdges[i] << " ";
             }
             cout << endl << "Wypelniam tablice wedlug losowej permutacji... 0..n-1" << endl;
-            for (int i = 0; i < n - 1; ++i) {
-                macierzSasiedztwa[possibleEdges[i]][possibleEdges[i+1]] = 1; // wstawiamy liczbe pomiedzy dwoma wezlami grafu
-                macierzSasiedztwa[possibleEdges[i+1]][possibleEdges[i]] = 1; // wstawiamy liczbe symetrycznie po drugiej stronie
+            for (int i = 0; i < n - 1; i++) {
+                macierzSasiedztwa[possibleEdges[i]][possibleEdges[i + 1]] = 1; // wstawiamy liczbe pomiedzy dwoma wezlami grafu
+                macierzSasiedztwa[possibleEdges[i + 1]][possibleEdges[i]] = 1; // wstawiamy liczbe symetrycznie po drugiej stronie
             }
-
-            cout << "Zawartosc tablicy po wypelnieniu zerami: " << endl;
+            cout << "Zabraklo nam: " << k - (n - 1) << " krawedzi do wymaganych " << k << endl;
+            vector<pair<int, int>> puste;
+            for (int i = 0; i < n; i++) {
+                for (int j = 0; j < i; j++) {
+                    if (macierzSasiedztwa[i][j] == 0) {
+                        puste.emplace_back(i, j);
+                    }
+                }
+            }
+            cout << "Mozliwe miejsca na krawedz:" << puste.size() << endl;
+            for (int i = 0; i < puste.size(); i++) {
+                //cout << "[" << puste[i].first << "][" << puste[i].second << "]" << endl;
+            }
+            cout << "Macierz przed wypelnianiem losowo " << k - (n - 1) << " miejsc..";
             for (int i = 0; i < n; i++) {
                 cout << "\n";
                 for (int j = 0; j < n; j++) {
-                    cout << macierzSasiedztwa[i][j];
+                    cout << macierzSasiedztwa[i][j] << " ";
+                }
+            }
+            shuffle(puste.begin(), puste.end(), std::mt19937(std::random_device()()));
+            for (int i = 0; i < k - (n - 1); i++) {
+                //cout << "Wstawiam jedynkę w losowe miejsce... " << i << endl;
+                macierzSasiedztwa[puste[i].first][puste[i].second] = 1;
+                macierzSasiedztwa[puste[i].second][puste[i].first] = 1;
+            }
+            cout << endl << "Zawartosc macierzy sąsiedztwa: " << endl;
+            for (int i = 0; i < n; i++) {
+                cout << "\n";
+                for (int j = 0; j < n; j++) {
+                    cout << macierzSasiedztwa[i][j] << " ";
                 }
             }
             break;
@@ -87,8 +110,6 @@ int main() {
             cout << "Graf ma teraz " << k << " krawędzi" << endl;
             break;
         }
-
-
         default: {
             cout << "Nie wybrano odpowiedniego trybu!" << endl;
             break;
