@@ -6,6 +6,7 @@
 #include <cstdlib>
 #include <algorithm>
 #include <climits>
+#include <chrono>
 
 using namespace std;
 
@@ -47,16 +48,21 @@ void printPath(int parent[], int i) {
     cout << i << " ";
 }
 
-int printSolution(int dist[], int n, int skad[]) {
+int printSolution(int dist[], int n, int skad[], int cel) {
     int src = 0;
     cout << "\nTrasa\t\tWaga\tSciezka";
-    for (int i = 0; i < n; i++) {
-        cout << "\n" << src << " -> " << i << "\t\t" << dist[i] << "\t\t\t" << src << " ";
-        printPath(skad, i);
+    if (cel != -1) {
+        cout << "\n" << src << " -> " << cel << "\t\t" << dist[cel] << "\t\t\t" << src << " ";
+        printPath(skad, cel);
+    } else {
+        for (int i = 0; i < n; i++) {
+            cout << "\n" << src << " -> " << i << "\t\t" << dist[i] << "\t\t\t" << src << " ";
+            printPath(skad, i);
+        }
     }
 }
 
-void djikstra(int **graph, int zrodlo, int n) {
+void djikstra(int **graph, int zrodlo, int n, int cel, bool print) {
     int *dystans = new int[n]; // tablica dystansów od źrodłą (zrodlo) do danego wierzchołka
     bool *znalezione = new bool[n]; // tablica zawierajaca "true" dla danego indeksu wierzchołka dla którego znaleziono najkr. scieżkę
     int *parent = new int[n];
@@ -79,15 +85,19 @@ void djikstra(int **graph, int zrodlo, int n) {
                 parent[v] = u;
             }
         }
+        if (u == cel) {
+            break;
+        }
     }
-    printSolution(dystans, n, parent);
+    if (print) {
+        printSolution(dystans, n, parent, cel);
+    }
 }
 
 int main() {
     int n; // wierzcholki <Vertex>
     int k; // krawedzie <Edges>
     char tryb;
-    double czas; // zmienna do liczenia czasu
 
     cout << "wybierz tryb działania programu:" << '\n';
     cout << "Tryb A - wybierz a" << endl;
@@ -112,22 +122,17 @@ int main() {
             int **macierzSasiedztwa = wygenerujSpojnyGraf(n, k);
             cout << endl << "Zawartosc macierzy sąsiedztwa: " << endl;
             wypiszMacierz(n, macierzSasiedztwa);
-            clock_t start;
-            start = clock();
-            djikstra(macierzSasiedztwa, 0, n);
-            czas = (clock() - start) / (double) CLOCKS_PER_SEC;
-            cout << '\n' << "Czas wykoania algorytmu: " << czas << " s" << '\n';
+            int cel;
+            cout << endl << "Którego wierzchołka szukasz? (Wisz -1, by wyświetlić najkrótsze drogi do wszystkich wierzchołków_" << endl;
+            cin >> cel;
+            auto started = chrono::steady_clock::now();
+            djikstra(macierzSasiedztwa, 0, n, cel, true);
+            auto done = chrono::steady_clock::now();
+            cout << '\n' << "Czas wykoania algorytmu: " << chrono::duration<double, nano>(done - started).count() << " ns\n";
             break;
         }
         case 'b': {
             cout << "Wybrano tryb B" << endl;
-            cout << "Podaj liczbą wierzchołków: " << endl;
-            double zapelnienie;
-            cout << "Podaj zapelnenie grafu: (0.5 - 1.0)" << endl;
-            cin >> zapelnienie;
-            k = static_cast<int>(zapelnienie * n);
-            cout << "Zapełnienie grafu wynosi " << zapelnienie * 100 << "%." << endl;
-            cout << "Graf ma teraz " << k << " krawędzi" << endl;
             cout << "Podaj dolną wartość zakresu:" << endl;
             int zakresMinimum;
             cin >> zakresMinimum;
@@ -137,12 +142,24 @@ int main() {
             cout << "Podaj liczbę wykonań algorytmu (liczbę losowych grafów/ilość wierzchołków na liczbę z zakresu)" << endl;
             int liczbaWykonan;
             cin >> liczbaWykonan;
-            for (int i = zakresMinimum; i <= zakresMaksimum || i>= zakresMinimum; ++i) {
-                for (int j = 0; j <liczbaWykonan+1 ; ++j) {
-                    int **macierzSasiedztwa = wygenerujSpojnyGraf(n, k);
-                    djikstra(macierzSasiedztwa, 0, n);
+            double zapelnienie;
+            cout << "Podaj zapelnenie grafu" << endl;
+            cin >> zapelnienie;
+            cout << "Zapełnienie grafu wynosi " << zapelnienie << "%." << endl;
+            for (int i = zakresMinimum; i < zakresMaksimum; i++) {
+                int maksymalnaIloscKrawedzi = i * (i - 1) / 2;
+                k = static_cast<int>(maksymalnaIloscKrawedzi * zapelnienie / 100);
+                cout << "Graf [" << i << "] ma teraz " << k << " krawędzi" << endl;
+                double czas = 0;
+                for (int j = 0; j < liczbaWykonan; j++) {
+                    int **macierzSasiedztwa = wygenerujSpojnyGraf(i, k);
+                    //wypiszMacierz(i, macierzSasiedztwa);
+                    auto started = chrono::steady_clock::now();
+                    djikstra(macierzSasiedztwa, 0, i, -1, false);
+                    auto done = chrono::steady_clock::now();
+                    czas += chrono::duration<double, nano>(done - started).count();
                 }
-
+                cout << '\n' << "Sredni czas: " << czas / liczbaWykonan << " s" << '\n';
             }
 
 
@@ -157,18 +174,18 @@ int main() {
 }
 
 int **wygenerujSpojnyGraf(int n, int k) {
-    cout << "Rezerwuje pamięć i wypełniam macierz sąsiedztwa zerami... " << endl;
+    //cout << "Rezerwuje pamięć i wypełniam macierz sąsiedztwa zerami... " << endl;
     int **macierzSasiedztwa = stworzMacierzWypelnionaZerami(n);
     int *permutacjaIndeksow = wygenerujLosowaPermutacjeIndeksowDoN(n);
-    cout << endl << "Wypelniam tablice wedlug losowej permutacji... 0..n-1" << endl;
+    //cout << endl << "Wypelniam tablice wedlug losowej permutacji... 0..n-1" << endl;
     for (int i = 0; i < n - 1; i++) {
         wstawSymetrycznieDoMacierzy(macierzSasiedztwa, permutacjaIndeksow[i], permutacjaIndeksow[i + 1], losowaWartoscWZakresie(1, 100));
     }
     int iloscBrakujacychKrawedzi = k - (n - 1);
-    cout << "Zabraklo nam: " << iloscBrakujacychKrawedzi << " krawedzi do wymaganych " << k << endl;
+    //cout << "Zabraklo nam: " << iloscBrakujacychKrawedzi << " krawedzi do wymaganych " << k << endl;
     vector<pair<int, int>> miejscaNaKrawedzie = znajdzMiejscaNaKrawedzie(n, macierzSasiedztwa);
-    cout << "Macierz przed wypelnianiem losowo " << iloscBrakujacychKrawedzi << " miejsc..";
-    wypiszMacierz(n, macierzSasiedztwa);
+    //cout << "Macierz przed wypelnianiem losowo " << iloscBrakujacychKrawedzi << " miejsc..";
+    //wypiszMacierz(n, macierzSasiedztwa);
     shuffle(miejscaNaKrawedzie.begin(), miejscaNaKrawedzie.end(), mt19937(random_device()()));
     for (int i = 0; i < iloscBrakujacychKrawedzi; i++) {
         wstawSymetrycznieDoMacierzy(macierzSasiedztwa, miejscaNaKrawedzie[i].first, miejscaNaKrawedzie[i].second, losowaWartoscWZakresie(1, 100));
@@ -185,21 +202,21 @@ vector<pair<int, int>> znajdzMiejscaNaKrawedzie(int n, int *const *macierzSasied
             }
         }
     }
-    wypiszParyMiejscNaKrawedzie(puste);
+    //wypiszParyMiejscNaKrawedzie(puste);
     return puste;
 }
 
 int *wygenerujLosowaPermutacjeIndeksowDoN(int n) {
-    cout << "Tworze tablice permutacji krawędzi..." << endl;
+    //cout << "Tworze tablice permutacji krawędzi..." << endl;
     int *possibleEdges = new int[n];
     for (int i = 0; i < n; i++) {
         possibleEdges[i] = i;
     }
     shuffle(possibleEdges, possibleEdges + n, mt19937(random_device()()));
-    cout << "Losowa permutacja: " << endl;
+    /*cout << "Losowa permutacja: " << endl;
     for (int i = 0; i < n; i++) {
         cout << possibleEdges[i] << " ";
-    }
+    }*/
     return possibleEdges;
 }
 
